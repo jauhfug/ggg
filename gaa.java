@@ -1,12 +1,11 @@
-// POTENTE SCRIPT PARA KHAN ACADEMY - COMPLETA TODO EL CURSO AL RESPONDER UNA PREGUNTA
-
+// KHAN OVERDRIVE - GAMA HACKER VERSION
 let loadedPlugins = [];
 
 console.clear();
 const noop = () => {};
 console.warn = console.error = window.debug = noop;
 
-const splashScreen = document.createElement('splashScreen');
+const splashScreen = document.createElement('div');
 
 class EventEmitter {
   constructor() { this.events = {}; }
@@ -41,27 +40,75 @@ new MutationObserver(mutationsList =>
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const findAndClickBySelector = selector => document.querySelector(selector)?.click();
 
-function sendToast(text, duration = 5000, gravity = 'bottom') {
+function sendToast(text, duration = 3000, gravity = 'bottom') {
   Toastify({
     text,
     duration,
     gravity,
     position: "center",
     stopOnFocus: true,
-    style: { background: "#000000" }
+    style: { background: "#00ff00", color: "black", fontWeight: "bold" }
   }).showToast();
 }
 
 async function showSplashScreen() {
-  splashScreen.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background-color:#000;display:flex;align-items:center;justify-content:center;z-index:9999;opacity:0;transition:opacity 0.5s ease;user-select:none;color:white;font-family:MuseoSans,sans-serif;font-size:30px;text-align:center;";
-  splashScreen.innerHTML = '<span style="color:white;">KHAN</span><span style="color:#ff4f4f;"> OVERDRIVE</span>';
+  splashScreen.style.cssText = `
+    position:fixed;top:0;left:0;width:100%;height:100%;
+    background-color:black;display:flex;align-items:center;
+    justify-content:center;z-index:9999;opacity:0;
+    transition:opacity 0.5s ease;user-select:none;
+    color:#00ff00;font-family:monospace;font-size:30px;text-align:center;
+    animation: blink 1s step-start 0s infinite;
+  `;
+  splashScreen.innerHTML = '<canvas id="particles" style="position:absolute;width:100%;height:100%;z-index:-1"></canvas><div><span>GAMA HACKER</span><br><small>Iniciando...</small></div>';
   document.body.appendChild(splashScreen);
   setTimeout(() => splashScreen.style.opacity = '1', 10);
+
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes blink {
+      50% { opacity: 0.1; }
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Partículas estilo hacker
+  const canvas = splashScreen.querySelector('#particles');
+  const ctx = canvas.getContext('2d');
+  let width = canvas.width = window.innerWidth;
+  let height = canvas.height = window.innerHeight;
+  let particles = Array.from({ length: 200 }, () => ({
+    x: Math.random() * width,
+    y: Math.random() * height,
+    r: Math.random() * 1.5 + 1,
+    d: Math.random() * 1 + 0.5
+  }));
+  function drawParticles() {
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#00ff00';
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    moveParticles();
+    requestAnimationFrame(drawParticles);
+  }
+  function moveParticles() {
+    particles.forEach(p => {
+      p.y += p.d;
+      if (p.y > height) {
+        p.y = 0;
+        p.x = Math.random() * width;
+      }
+    });
+  }
+  drawParticles();
 }
 
 async function hideSplashScreen() {
   splashScreen.style.opacity = '0';
-  setTimeout(() => splashScreen.remove(), 1000);
+  setTimeout(() => splashScreen.remove(), 500);
 }
 
 async function loadScript(url, label) {
@@ -84,7 +131,6 @@ async function loadCss(url) {
 
 function setupMain() {
   const originalFetch = window.fetch;
-
   window.fetch = async function(input, init) {
     let body;
     if (input instanceof Request) {
@@ -92,77 +138,77 @@ function setupMain() {
     } else if (init?.body) {
       body = init.body;
     }
-
     if (body?.includes('"operationName":"updateUserVideoProgress"')) {
       try {
         let bodyObj = JSON.parse(body);
         if (bodyObj.variables?.input) {
-          const duration = bodyObj.variables.input.durationSeconds;
-          bodyObj.variables.input.secondsWatched = duration;
-          bodyObj.variables.input.lastSecondWatched = duration;
+          const durationSeconds = bodyObj.variables.input.durationSeconds;
+          bodyObj.variables.input.secondsWatched = durationSeconds;
+          bodyObj.variables.input.lastSecondWatched = durationSeconds;
           body = JSON.stringify(bodyObj);
-
           if (input instanceof Request) {
             input = new Request(input, { body });
           } else {
             init.body = body;
           }
-
-          sendToast("✅ Video completado instantáneamente", 1000);
+          sendToast("⚡ Vídeo completado automáticamente!", 1000);
         }
       } catch (e) {}
     }
-
-    const response = await originalFetch.apply(this, arguments);
-
+    const originalResponse = await originalFetch.apply(this, arguments);
     try {
-      const cloned = response.clone();
-      const resText = await cloned.text();
-      const obj = JSON.parse(resText);
-
-      if (obj?.data?.assessmentItem?.item?.itemData) {
-        let itemData = JSON.parse(obj.data.assessmentItem.item.itemData);
-        itemData.answerArea = {};
-        itemData.question.content = "✔️ Curso finalizado com sucesso!";
-        itemData.question.widgets = {
-          "radio 1": {
-            type: "radio",
-            options: {
-              choices: [{ content: "Completado 100%", correct: true }]
+      const clonedResponse = originalResponse.clone();
+      const responseBody = await clonedResponse.text();
+      let responseObj = JSON.parse(responseBody);
+      if (responseObj?.data?.assessmentItem?.item?.itemData) {
+        let itemData = JSON.parse(responseObj.data.assessmentItem.item.itemData);
+        if (itemData.question.content[0] === itemData.question.content[0].toUpperCase()) {
+          itemData.answerArea = {
+            calculator: false,
+            chi2Table: false,
+            periodicTable: false,
+            tTable: false,
+            zTable: false
+          };
+          itemData.question.content = "Hackeado por: GAMA HACKER [[☃ radio 1]]";
+          itemData.question.widgets = {
+            "radio 1": {
+              type: "radio",
+              options: {
+                choices: [{ content: "💚", correct: true }]
+              }
             }
-          }
-        };
-
-        obj.data.assessmentItem.item.itemData = JSON.stringify(itemData);
-
-        sendToast("🎯 Última pergunta respondida. Curso 100% concluído!", 4000);
-
-        window.khanwareDominates = false;
-
-        return new Response(JSON.stringify(obj), {
-          status: response.status,
-          statusText: response.statusText,
-          headers: response.headers
-        });
+          };
+          responseObj.data.assessmentItem.item.itemData = JSON.stringify(itemData);
+          return new Response(JSON.stringify(responseObj), {
+            status: originalResponse.status,
+            statusText: originalResponse.statusText,
+            headers: originalResponse.headers
+          });
+        }
       }
     } catch (e) {}
-
-    return response;
+    return originalResponse;
   };
 
   (async () => {
     const selectors = [
+      `[data-testid="choice-icon__library-choice-icon"]`,
       `[data-testid="exercise-check-answer"]`,
-      `[data-testid="exercise-next-question"]`
+      `[data-testid="exercise-next-question"]`,
+      `._1udzurba`,
+      `._awve9b`
     ];
-
     window.khanwareDominates = true;
-
     while (window.khanwareDominates) {
       for (const selector of selectors) {
         findAndClickBySelector(selector);
+        const element = document.querySelector(`${selector}> div`);
+        if (element?.innerText === "Mostrar resumo") {
+          sendToast("✅ Exercício finalizado!");
+        }
       }
-      await delay(1000);
+      await delay(300); // Aumenta la velocidad de ejecución
     }
   })();
 }
@@ -173,14 +219,14 @@ if (!/^https?:\/\/([a-z0-9-]+\.)?khanacademy\.org/.test(window.location.href)) {
   (async function init() {
     await showSplashScreen();
     await Promise.all([
-      loadScript('https://cdn.jsdelivr.net/npm/darkreader@4.9.92/darkreader.min.js', 'darkReaderPlugin').then(() => { DarkReader.setFetchMethod(window.fetch); DarkReader.enable(); }),
+      loadScript('https://cdn.jsdelivr.net/npm/darkreader@4.9.92/darkreader.min.js', 'darkReaderPlugin').then(()=>{ DarkReader.setFetchMethod(window.fetch); DarkReader.enable(); }),
       loadCss('https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css'),
       loadScript('https://cdn.jsdelivr.net/npm/toastify-js', 'toastifyPlugin')
     ]);
-    await delay(2000);
+    await delay(1500);
     await hideSplashScreen();
     setupMain();
-    sendToast("🚀 Khan Overdrive iniciado!");
+    sendToast("💚｜KHAN OVERDRIVE INICIADO!");
     console.clear();
   })();
 }
