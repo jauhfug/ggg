@@ -1,4 +1,4 @@
-// KHAN OVERDRIVE - GAMA HACKER VERSION
+// KHAN OVERDRIVE - GAMA HACKER VERSION (corregido final loop error)
 let loadedPlugins = [];
 
 console.clear();
@@ -104,7 +104,8 @@ function setupMain() {
     } else if (init?.body) {
       body = init.body;
     }
-    if (body?.includes('"operationName":"updateUserVideoProgress"')) {
+
+    if (body?.includes('updateUserVideoProgress')) {
       try {
         let bodyObj = JSON.parse(body);
         if (bodyObj.variables?.input) {
@@ -112,41 +113,39 @@ function setupMain() {
           bodyObj.variables.input.secondsWatched = durationSeconds;
           bodyObj.variables.input.lastSecondWatched = durationSeconds;
           body = JSON.stringify(bodyObj);
-          if (input instanceof Request) {
-            input = new Request(input, { body });
-          } else {
-            init.body = body;
-          }
+          if (input instanceof Request) input = new Request(input, { body });
+          else init.body = body;
           sendToast("⚡ Vídeo completado automáticamente!", 1000);
         }
       } catch (e) {}
     }
+
     const originalResponse = await originalFetch.apply(this, arguments);
     try {
-      const clonedResponse = originalResponse.clone();
-      const responseBody = await clonedResponse.text();
-      let responseObj = JSON.parse(responseBody);
-      if (responseObj?.data?.assessmentItem?.item?.itemData) {
-        let itemData = JSON.parse(responseObj.data.assessmentItem.item.itemData);
+      const cloned = originalResponse.clone();
+      const text = await cloned.text();
+
+      if (text.includes('GRAPHQL_ERROR')) {
+        sendToast("❌ Error detectado. Deteniendo bot.");
+        window.khanwareDominates = false;
+      }
+
+      const data = JSON.parse(text);
+      if (data?.data?.assessmentItem?.item?.itemData) {
+        let itemData = JSON.parse(data.data.assessmentItem.item.itemData);
         if (itemData.question.content[0] === itemData.question.content[0].toUpperCase()) {
           itemData.answerArea = {
-            calculator: false,
-            chi2Table: false,
-            periodicTable: false,
-            tTable: false,
-            zTable: false
+            calculator: false, chi2Table: false, periodicTable: false, tTable: false, zTable: false
           };
           itemData.question.content = "Hackeado por: GAMA HACKER [[☃ radio 1]]";
           itemData.question.widgets = {
             "radio 1": {
               type: "radio",
-              options: {
-                choices: [{ content: "💚", correct: true }]
-              }
+              options: { choices: [{ content: "💚", correct: true }] }
             }
           };
-          responseObj.data.assessmentItem.item.itemData = JSON.stringify(itemData);
-          return new Response(JSON.stringify(responseObj), {
+          data.data.assessmentItem.item.itemData = JSON.stringify(itemData);
+          return new Response(JSON.stringify(data), {
             status: originalResponse.status,
             statusText: originalResponse.statusText,
             headers: originalResponse.headers
@@ -162,29 +161,18 @@ function setupMain() {
       `[data-testid="choice-icon__library-choice-icon"]`,
       `[data-testid="exercise-check-answer"]`,
       `[data-testid="exercise-next-question"]`,
-      `._1udzurba`,
-      `._awve9b`
+      `._1udzurba`, `._awve9b`
     ];
     window.khanwareDominates = true;
-    let errorCounter = 0;
-
     while (window.khanwareDominates) {
       for (const selector of selectors) {
         findAndClickBySelector(selector);
-
-        const errorBox = document.querySelector('[data-test-id="error-message"]');
-        if (errorBox?.innerText.includes("Oh no") || errorBox?.innerText.includes("GRAPHQL_ERROR")) {
-          sendToast("❌ Error detectado. Reiniciando bot.", 5000);
-          window.khanwareDominates = false;
-          return;
-        }
-
         const element = document.querySelector(`${selector}> div`);
         if (element?.innerText === "Mostrar resumo") {
           sendToast("✅ Exercício finalizado!");
         }
       }
-      await delay(300); // Velocidad aumentada
+      await delay(500);
     }
   })();
 }
