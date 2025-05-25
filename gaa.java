@@ -60,10 +60,9 @@ async function showSplashScreen() {
     color:#00ff00;font-family:monospace;font-size:30px;text-align:center;
     animation: blink 1s step-start 0s infinite;
   `;
-  splashScreen.innerHTML = '<canvas id="particles" style="position:absolute;width:100%;height:100%;z-index:-1"></canvas><div><span>GAMA HACKER</span><br><small>Iniciando...</small></div>';
+  splashScreen.innerHTML = '<div><span>GAMA HACKER</span><br><small>Iniciando...</small></div>';
   document.body.appendChild(splashScreen);
   setTimeout(() => splashScreen.style.opacity = '1', 10);
-
   const style = document.createElement('style');
   style.textContent = `
     @keyframes blink {
@@ -71,39 +70,6 @@ async function showSplashScreen() {
     }
   `;
   document.head.appendChild(style);
-
-  // Partículas estilo hacker
-  const canvas = splashScreen.querySelector('#particles');
-  const ctx = canvas.getContext('2d');
-  let width = canvas.width = window.innerWidth;
-  let height = canvas.height = window.innerHeight;
-  let particles = Array.from({ length: 200 }, () => ({
-    x: Math.random() * width,
-    y: Math.random() * height,
-    r: Math.random() * 1.5 + 1,
-    d: Math.random() * 1 + 0.5
-  }));
-  function drawParticles() {
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = '#00ff00';
-    particles.forEach(p => {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fill();
-    });
-    moveParticles();
-    requestAnimationFrame(drawParticles);
-  }
-  function moveParticles() {
-    particles.forEach(p => {
-      p.y += p.d;
-      if (p.y > height) {
-        p.y = 0;
-        p.x = Math.random() * width;
-      }
-    });
-  }
-  drawParticles();
 }
 
 async function hideSplashScreen() {
@@ -200,15 +166,25 @@ function setupMain() {
       `._awve9b`
     ];
     window.khanwareDominates = true;
+    let errorCounter = 0;
+
     while (window.khanwareDominates) {
       for (const selector of selectors) {
         findAndClickBySelector(selector);
+
+        const errorBox = document.querySelector('[data-test-id="error-message"]');
+        if (errorBox?.innerText.includes("Oh no") || errorBox?.innerText.includes("GRAPHQL_ERROR")) {
+          sendToast("❌ Error detectado. Reiniciando bot.", 5000);
+          window.khanwareDominates = false;
+          return;
+        }
+
         const element = document.querySelector(`${selector}> div`);
         if (element?.innerText === "Mostrar resumo") {
           sendToast("✅ Exercício finalizado!");
         }
       }
-      await delay(300); // Aumenta la velocidad de ejecución
+      await delay(300); // Velocidad aumentada
     }
   })();
 }
